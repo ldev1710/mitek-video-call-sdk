@@ -1,16 +1,18 @@
 name: mitek_video_call_sdk
-description: "A new Flutter package project."
+description: "A package for video call easily."
 version: 0.0.1
-homepage:
+homepage: https://mitek.vn/
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  sdk: '>=3.3.0 <4.0.0'
   flutter: ">=3.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
   permission_handler: ^11.3.1
+  livekit_client: ^2.2.4
+  dio: ^5.6.0
 
 
 dev_dependencies:
