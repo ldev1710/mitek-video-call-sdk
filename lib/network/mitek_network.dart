@@ -1,22 +1,24 @@
-import 'dart:async';
+part of '../mitek_video_call_sdk.dart';
 
-import 'package:dio/dio.dart';
-import 'package:mitek_video_call_sdk/utils/constants.dart';
-
-class MTNetwork {
+class _MTNetwork {
   static late Dio _dio;
-  static final MTNetwork _instance = MTNetwork._internal();
-  static MTNetwork get instance => _instance;
-  MTNetwork._internal();
-  factory MTNetwork() {
+  static final _MTNetwork _instance = _MTNetwork._internal();
+  static _MTNetwork get instance => _instance;
+  _MTNetwork._internal();
+  factory _MTNetwork() {
     _dio = Dio();
     _dio
       ..options.baseUrl = MTNetworkConstant.url
       ..options.connectTimeout = const Duration(seconds: MTConstant.connectTimeOut)
       ..options.receiveTimeout = const Duration(seconds: MTConstant.receiveTimeOut)
       ..options.responseType = ResponseType.json;
-    _dio.interceptors.add(AuthorizationInterceptor());
     return _instance;
+  }
+
+  String? _apiKey;
+
+  void setApiKey({required String apiKey}) {
+    _apiKey = apiKey;
   }
 
   Future<Response> get(
@@ -29,6 +31,11 @@ class MTNetwork {
     try {
       Response response = await _dio.get(
         path,
+        options: Options(
+          headers: {
+            'x-api-key': _apiKey,
+          },
+        ),
         queryParameters: queryParameters,
         cancelToken: cancelToken,
         onReceiveProgress: onReceiveProgress,
@@ -51,6 +58,11 @@ class MTNetwork {
     try {
       Response response = await _dio.post(
         uri,
+        options: Options(
+          headers: {
+            'x-api-key': _apiKey,
+          },
+        ),
         data: data,
         queryParameters: queryParameters,
         cancelToken: cancelToken,
@@ -62,12 +74,4 @@ class MTNetwork {
       return Response(requestOptions: RequestOptions(), data: null);
     }
   }
-}
-
-class AuthorizationInterceptor extends InterceptorsWrapper {
-  @override
-  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {}
-
-  @override
-  void onError(DioException err, ErrorInterceptorHandler handler) async {}
 }

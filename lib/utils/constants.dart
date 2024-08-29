@@ -4,8 +4,8 @@ class MTConstant {
 }
 
 class MTNetworkConstant {
-  static const String url = "wss://videocall-devbe.mitek.vn";
-  static const String authenticate = "/";
-  static const String getLanguageSp = "/";
-  static const String initVideoCall = "/";
+  static const String url = "https://videocall-api-vt.mitek.vn/api/v1/integration/";
+  static const String authenticate = "/getConfigVideoCall";
+  static const String createConnection = "/createConnection";
+  static const String initVideoCall = "/createConnection";
 }
