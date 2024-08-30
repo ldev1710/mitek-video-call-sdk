@@ -25,7 +25,7 @@ class MTQueue {
       queueNum: json["queue_num"],
       queueName: json["queue_name"],
       queueDisplay: json["queue_display"],
-      maxWaitTime: int.parse(json["max_wait_time"]),
+      maxWaitTime: json["max_wait_time"],
     );
   }
 }

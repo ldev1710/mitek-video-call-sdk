@@ -15,8 +15,8 @@ class MTRoom {
     return MTRoom(
       roomId: json["room_id"],
       roomName: json["room_name"],
-      emptyTimeOut: int.parse(json["emptyTimeout"]),
-      maxParticipants: int.parse(json["maxParticipants"]),
+      emptyTimeOut: json["emptyTimeout"],
+      maxParticipants: json["maxParticipants"],
     );
   }
 

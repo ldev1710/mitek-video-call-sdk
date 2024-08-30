@@ -1,14 +1,18 @@
 library mitek_video_call_sdk;
 
 import 'dart:convert';
+import 'dart:developer';
 
 import 'package:dio/dio.dart';
 import 'package:livekit_client/livekit_client.dart';
+import 'package:mitek_video_call_sdk/listen/publisher/room_publisher.dart';
+import 'package:mitek_video_call_sdk/listen/publisher/track_publisher.dart';
 import 'package:mitek_video_call_sdk/models/queue.dart';
 import 'package:mitek_video_call_sdk/models/room.dart';
 import 'package:mitek_video_call_sdk/models/user.dart';
 import 'package:mitek_video_call_sdk/utils/constants.dart';
 import 'package:mitek_video_call_sdk/utils/log.dart';
+import 'package:mitek_video_call_sdk/utils/observing.dart';
 
 part 'network/mitek_network.dart';
 
@@ -23,11 +27,15 @@ class MTVideoCallPlugin {
   bool _isVideoCalling = false;
   bool _isEnableVideo = false;
   bool _isEnableAudio = false;
+  final List<MTRoomEventListener> _roomListener = [];
+  final List<MTTrackListener> _trackListener = [];
   String? _wssUrl;
   String? _socketUrl;
-  EventsListener<RoomEvent>? _roomListener;
+  EventsListener<RoomEvent>? _roomCoreListener;
   LocalAudioTrack? _audioTrack;
   LocalVideoTrack? _videoTrack;
+  LocalVideoTrack? get localVideoTrack => _videoTrack;
+  LocalAudioTrack? get localAudioTrack => _audioTrack;
   MediaDevice? _selectedVideoDevice;
   MediaDevice? _selectedAudioDevice;
   List<MediaDevice> _audioInputs = [];
@@ -37,11 +45,15 @@ class MTVideoCallPlugin {
   List<MTQueue> _queues = [];
   Room? _room;
 
+  List<MTRoomEventListener> get roomListener => _roomListener;
+  List<MTTrackListener> get trackListener => _trackListener;
+
   /// Listen: onDeviceChange, onParticipantAttended, onDisconnectedRoom, onConnectedRoom
   /// Listen: onParticipantPublishAudioTrack, onParticipantPublishVideoTrack
 
   /// Authenticating with MITEK system using api key was provided
   Future<bool> authenticate({required String apiKey}) async {
+    _instanceNetwork.setApiKey(apiKey: apiKey);
     final response = await _instanceNetwork.get(MTNetworkConstant.authenticate);
     _isAuthenticated = response.statusCode == 200;
     if (_isAuthenticated) {
@@ -49,7 +61,7 @@ class MTVideoCallPlugin {
     }
     String decodeBase64 = utf8.decode(base64.decode(response.data['data']));
     Map<String, dynamic> mapData = json.decode(decodeBase64);
-    _queues = mapData['list_queues'].map((e) => MTQueue.fromJson(e));
+    _queues = List<MTQueue>.from(mapData['list_queues'].map((e) => MTQueue.fromJson(e)));
     _wssUrl = mapData['wss_url'];
     _socketUrl = mapData['socket_url'];
     Hardware.instance.onDeviceChange.stream.listen(_loadDevices);
@@ -64,6 +76,14 @@ class MTVideoCallPlugin {
     return _queues;
   }
 
+  void enableVideo(bool enable) {
+    _room!.localParticipant!.setCameraEnabled(enable);
+  }
+
+  void enableMicrophone(bool enable) {
+    _room!.localParticipant!.setMicrophoneEnabled(enable);
+  }
+
   List<MediaDevice> getDeviceAudioInput() {
     _isValid();
     return _audioInputs;
@@ -74,12 +94,12 @@ class MTVideoCallPlugin {
     return _videoInputs;
   }
 
-  void setInputVideo(MediaDevice inputVideo) async {
+  Future<void> setInputVideo(MediaDevice? inputVideo) async {
     _selectedVideoDevice = inputVideo;
     await _changeLocalVideoTrack();
   }
 
-  void setInputAudio(MediaDevice inputAudio) async {
+  Future<void> setInputAudio(MediaDevice inputAudio) async {
     _selectedAudioDevice = inputAudio;
     await _changeLocalAudioTrack();
   }
@@ -94,7 +114,7 @@ class MTVideoCallPlugin {
       "created_name": user.name,
     };
     final response = await _instanceNetwork.post(
-      MTNetworkConstant.initVideoCall,
+      MTNetworkConstant.createRoom,
       data: body,
     );
     final room = MTRoom.fromJson(response.data['data']);
@@ -110,6 +130,7 @@ class MTVideoCallPlugin {
     _isValid();
     Map<String, dynamic> body = {
       "queue_num": queue.queueNum,
+      "queue_name": queue.queueName,
       "created_from": "widget",
       "created_name": user.name,
       "room_id": room.roomId,
@@ -120,10 +141,13 @@ class MTVideoCallPlugin {
       data: body,
     );
     _videoCallToken = response.data['data'];
+    log("_videoCallToken: $_videoCallToken");
     _room = Room();
-    _roomListener = _room!.createListener();
+    _roomCoreListener = _room!.createListener();
     _setUpListener();
     await _room!.connect(_wssUrl!, _videoCallToken ?? "");
+    await _room!.localParticipant?.setCameraEnabled(true);
+    await _room!.localParticipant?.setMicrophoneEnabled(true);
     _isVideoCalling = true;
     return true;
   }
@@ -136,6 +160,7 @@ class MTVideoCallPlugin {
       return false;
     }
     await _room!.disconnect();
+    _isVideoCalling = false;
     return true;
   }
 
@@ -146,25 +171,25 @@ class MTVideoCallPlugin {
     return true;
   }
 
-  Future<void> enableVideo(bool value) async {
-    _isEnableVideo = value;
-    if (!_isEnableVideo) {
-      await _videoTrack?.stop();
-      _videoTrack = null;
-    } else {
-      await _changeLocalVideoTrack();
-    }
-  }
-
-  Future<void> enableAudio(bool value) async {
-    _isEnableAudio = value;
-    if (!_isEnableAudio) {
-      await _audioTrack?.stop();
-      _audioTrack = null;
-    } else {
-      await _changeLocalAudioTrack();
-    }
-  }
+  // Future<void> enableVideo(bool value) async {
+  //   _isEnableVideo = value;
+  //   if (!_isEnableVideo) {
+  //     await _videoTrack?.stop();
+  //     _videoTrack = null;
+  //   } else {
+  //     await _changeLocalVideoTrack();
+  //   }
+  // }
+  //
+  // Future<void> enableAudio(bool value) async {
+  //   _isEnableAudio = value;
+  //   if (!_isEnableAudio) {
+  //     await _audioTrack?.stop();
+  //     _audioTrack = null;
+  //   } else {
+  //     await _changeLocalAudioTrack();
+  //   }
+  // }
 
   Future<void> _changeLocalAudioTrack() async {
     if (_audioTrack != null) {
@@ -193,6 +218,7 @@ class MTVideoCallPlugin {
         ),
       );
       await _videoTrack!.start();
+      await _room!.localParticipant?.publishVideoTrack(_videoTrack!);
     }
   }
 
@@ -202,24 +228,38 @@ class MTVideoCallPlugin {
   }
 
   void _setUpListener() {
-    _roomListener!
+    _roomCoreListener!
       ..on<RoomDisconnectedEvent>((event) async {
         MTLog.logI(message: "RoomDisconnectedEvent ${event.reason.toString()}");
+        MTObserving.observingRoomDisconnected(event.reason);
+      })
+      ..on<RoomConnectedEvent>((event) async {
+        MTLog.logI(message: "RoomConnectedEvent ${event.room.toString()}");
+        MTObserving.observingRoomConnected(event);
       })
       ..on<ParticipantConnectedEvent>((event) {
         MTLog.logI(message: "ParticipantConnectedEvent ${event.participant.toString()}");
+        MTObserving.observingParticipantConnected(event);
+      })
+      ..on<ParticipantDisconnectedEvent>((event) {
+        MTLog.logI(message: "ParticipantDisconnectedEvent ${event.participant.toString()}");
+        MTObserving.observingParticipantDisconnected(event);
       })
       ..on<LocalTrackPublishedEvent>((event) {
         MTLog.logI(message: "LocalTrackPublishedEvent ${event.publication.toString()}");
+        MTObserving.observingLocalTrackPublished(event);
       })
       ..on<LocalTrackUnpublishedEvent>((event) {
         MTLog.logI(message: "LocalTrackUnpublishedEvent ${event.publication.toString()}");
+        MTObserving.observingLocalTrackUnPublished(event);
       })
       ..on<TrackSubscribedEvent>((event) {
         MTLog.logI(message: "TrackSubscribedEvent ${event.track.toString()}");
+        MTObserving.observingTrackSubscribed(event);
       })
       ..on<TrackUnsubscribedEvent>((event) {
         MTLog.logI(message: "TrackUnsubscribedEvent ${event.track.toString()}");
+        MTObserving.observingTrackUnsubscribed(event);
       })
       ..on<ParticipantMetadataUpdatedEvent>((event) {
         MTLog.logI(message: "ParticipantMetadataUpdatedEvent ${event.metadata}");
@@ -228,13 +268,16 @@ class MTVideoCallPlugin {
         MTLog.logI(message: "RoomMetadataChangedEvent ${event.metadata}");
       })
       ..on<DataReceivedEvent>((event) {
-        String decoded = 'Failed to decode';
-        try {
-          decoded = utf8.decode(event.data);
-        } catch (err) {
-          print('Failed to decode: $err');
-        }
-        MTLog.logI(message: "DataReceivedEvent $decoded");
+        MTLog.logI(message: "DataReceivedEvent $event");
+        MTObserving.observingDataReceive(event);
       });
+  }
+
+  void removeMTRoomEventListener(MTRoomEventListener listener) {
+    _roomListener.remove(listener);
+  }
+
+  void addMTRoomEventListener(MTRoomEventListener listener) {
+    _roomListener.add(listener);
   }
 }
