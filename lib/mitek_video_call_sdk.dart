@@ -47,6 +47,7 @@ class MTVideoCallPlugin {
 
   List<MTRoomEventListener> get roomListener => _roomListener;
   List<MTTrackListener> get trackListener => _trackListener;
+  Room? get currRoom => _room;
 
   /// Listen: onDeviceChange, onParticipantAttended, onDisconnectedRoom, onConnectedRoom
   /// Listen: onParticipantPublishAudioTrack, onParticipantPublishVideoTrack
@@ -96,12 +97,10 @@ class MTVideoCallPlugin {
 
   Future<void> setInputVideo(MediaDevice? inputVideo) async {
     _selectedVideoDevice = inputVideo;
-    await _changeLocalVideoTrack();
   }
 
   Future<void> setInputAudio(MediaDevice inputAudio) async {
     _selectedAudioDevice = inputAudio;
-    await _changeLocalAudioTrack();
   }
 
   /// Call this function before call 'startVideoCall' function
@@ -143,9 +142,18 @@ class MTVideoCallPlugin {
     _videoCallToken = response.data['data'];
     log("_videoCallToken: $_videoCallToken");
     _room = Room();
+    _videoTrack = await LocalVideoTrack.createCameraTrack(
+      CameraCaptureOptions(
+        deviceId: _selectedVideoDevice != null
+            ? _selectedVideoDevice!.deviceId
+            : _videoInputs.first.deviceId,
+      ),
+    );
     _roomCoreListener = _room!.createListener();
     _setUpListener();
+    await _videoTrack!.start();
     await _room!.connect(_wssUrl!, _videoCallToken ?? "");
+    await _room!.localParticipant?.publishVideoTrack(_videoTrack!);
     await _room!.localParticipant?.setCameraEnabled(true);
     await _room!.localParticipant?.setMicrophoneEnabled(true);
     _isVideoCalling = true;
@@ -171,26 +179,6 @@ class MTVideoCallPlugin {
     return true;
   }
 
-  // Future<void> enableVideo(bool value) async {
-  //   _isEnableVideo = value;
-  //   if (!_isEnableVideo) {
-  //     await _videoTrack?.stop();
-  //     _videoTrack = null;
-  //   } else {
-  //     await _changeLocalVideoTrack();
-  //   }
-  // }
-  //
-  // Future<void> enableAudio(bool value) async {
-  //   _isEnableAudio = value;
-  //   if (!_isEnableAudio) {
-  //     await _audioTrack?.stop();
-  //     _audioTrack = null;
-  //   } else {
-  //     await _changeLocalAudioTrack();
-  //   }
-  // }
-
   Future<void> _changeLocalAudioTrack() async {
     if (_audioTrack != null) {
       await _audioTrack!.stop();
@@ -205,20 +193,11 @@ class MTVideoCallPlugin {
     }
   }
 
-  Future<void> _changeLocalVideoTrack() async {
-    if (_videoTrack != null) {
-      await _videoTrack!.stop();
-      _videoTrack = null;
-    }
+  Future<void> changeLocalVideoTrack(MediaDevice select) async {
+    _selectedVideoDevice = select;
 
     if (_selectedVideoDevice != null) {
-      _videoTrack = await LocalVideoTrack.createCameraTrack(
-        CameraCaptureOptions(
-          deviceId: _selectedVideoDevice!.deviceId,
-        ),
-      );
-      await _videoTrack!.start();
-      await _room!.localParticipant?.publishVideoTrack(_videoTrack!);
+      await _room!.setVideoInputDevice(_selectedVideoDevice!);
     }
   }
 
@@ -237,9 +216,16 @@ class MTVideoCallPlugin {
         MTLog.logI(message: "RoomConnectedEvent ${event.room.toString()}");
         MTObserving.observingRoomConnected(event);
       })
-      ..on<ParticipantConnectedEvent>((event) {
-        MTLog.logI(message: "ParticipantConnectedEvent ${event.participant.toString()}");
-        MTObserving.observingParticipantConnected(event);
+      ..on<TrackMutedEvent>((event) {
+        MTLog.logI(message: "TrackMutedEvent ${event.participant.toString()}");
+        if (event.participant is RemoteParticipant) MTObserving.observingRemoteMutedTrack(event);
+      })
+      ..on<TrackUnmutedEvent>((event) {
+        MTLog.logI(message: "TrackUnmutedEvent ${event.participant.toString()}");
+        if (event.participant is RemoteParticipant) MTObserving.observingRemoteUnMutedTrack(event);
+      })
+      ..on<ParticipantEvent>((event) {
+        MTLog.logI(message: "ParticipantEvent ${event.runtimeType}");
       })
       ..on<ParticipantDisconnectedEvent>((event) {
         MTLog.logI(message: "ParticipantDisconnectedEvent ${event.participant.toString()}");
@@ -279,5 +265,13 @@ class MTVideoCallPlugin {
 
   void addMTRoomEventListener(MTRoomEventListener listener) {
     _roomListener.add(listener);
+  }
+
+  void removeMTTrackEventListener(MTTrackListener listener) {
+    _trackListener.remove(listener);
+  }
+
+  void addMTTrackEventListener(MTTrackListener listener) {
+    _trackListener.add(listener);
   }
 }

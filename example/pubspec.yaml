@@ -33,6 +33,7 @@ dependencies:
   mitek_video_call_sdk:
     path: ../
   dropdown_button2: ^2.3.9
+  pip_view: ^0.9.7
 
 
   # The following adds the Cupertino Icons font to your application.

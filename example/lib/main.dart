@@ -6,12 +6,9 @@ import 'package:mitek_video_call_sdk/models/user.dart';
 import 'package:mitek_video_call_sdk_eample/app_dropdown.dart';
 import 'package:mitek_video_call_sdk_eample/pages/calling_page.dart';
 
-void main() async {
-  runApp(const MyApp());
-}
+void main() => runApp(MyApp());
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -20,6 +17,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
+      // home: HomeScreen(),
       home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
@@ -62,12 +60,7 @@ class _MyHomePageState extends State<MyHomePage> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.background,
-        title: GestureDetector(
-          onTap: () {
-            MTVideoCallPlugin.instance.disconnectVideoCall();
-          },
-          child: Text(widget.title),
-        ),
+        title: Text(widget.title),
       ),
       body: Padding(
         padding: const EdgeInsets.all(8.0),

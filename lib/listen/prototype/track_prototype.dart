@@ -9,4 +9,6 @@ abstract class MTTrackPrototype {
       RemoteTrackPublication<RemoteTrack> publication, RemoteParticipant participant, Track track);
   void onTrackUnSubscribed(
       RemoteTrackPublication<RemoteTrack> publication, RemoteParticipant participant, Track track);
+  void onRemoteMutedTrack(TrackPublication<Track> publication, Participant participant);
+  void onRemoteUnMutedTrack(TrackPublication<Track> publication, Participant participant);
 }

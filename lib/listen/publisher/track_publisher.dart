@@ -1,10 +1,4 @@
-import 'package:livekit_client/src/participant/local.dart';
-import 'package:livekit_client/src/participant/remote.dart';
-import 'package:livekit_client/src/publication/local.dart';
-import 'package:livekit_client/src/publication/remote.dart';
-import 'package:livekit_client/src/track/local/local.dart';
-import 'package:livekit_client/src/track/remote/remote.dart';
-import 'package:livekit_client/src/track/track.dart';
+import 'package:livekit_client/livekit_client.dart';
 import 'package:mitek_video_call_sdk/listen/prototype/track_prototype.dart';
 
 mixin class MTTrackListener implements MTTrackPrototype {
@@ -30,5 +24,15 @@ mixin class MTTrackListener implements MTTrackPrototype {
   void onTrackUnSubscribed(
       RemoteTrackPublication<RemoteTrack> publication, RemoteParticipant participant, Track track) {
     // TODO: implement onTrackUnSubscribed
+  }
+
+  @override
+  void onRemoteMutedTrack(TrackPublication<Track> publication, Participant participant) {
+    // TODO: implement onRemoteMutedTrack
+  }
+
+  @override
+  void onRemoteUnMutedTrack(TrackPublication<Track> publication, Participant participant) {
+    // TODO: implement onRemoteUnMutedTrack
   }
 }

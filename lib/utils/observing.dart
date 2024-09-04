@@ -55,4 +55,16 @@ class MTObserving {
       e.onTrackUnSubscribed(event.publication, event.participant, event.track);
     }
   }
+
+  static void observingRemoteMutedTrack(TrackMutedEvent event) {
+    for (var e in MTVideoCallPlugin.instance.trackListener) {
+      e.onRemoteMutedTrack(event.publication, event.participant);
+    }
+  }
+
+  static void observingRemoteUnMutedTrack(TrackUnmutedEvent event) {
+    for (var e in MTVideoCallPlugin.instance.trackListener) {
+      e.onRemoteUnMutedTrack(event.publication, event.participant);
+    }
+  }
 }
