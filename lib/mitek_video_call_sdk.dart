@@ -210,11 +210,15 @@ class MTVideoCallPlugin {
     _roomCoreListener!
       ..on<RoomDisconnectedEvent>((event) async {
         MTLog.logI(message: "RoomDisconnectedEvent ${event.reason.toString()}");
-        MTObserving.observingRoomDisconnected(event.reason);
+        try {
+          MTObserving.observingRoomDisconnected(event.reason);
+        } catch (e) {}
       })
       ..on<RoomConnectedEvent>((event) async {
         MTLog.logI(message: "RoomConnectedEvent ${event.room.toString()}");
-        MTObserving.observingRoomConnected(event);
+        try {
+          MTObserving.observingRoomConnected(event);
+        } catch (e) {}
       })
       ..on<TrackMutedEvent>((event) {
         MTLog.logI(message: "TrackMutedEvent ${event.participant.toString()}");
@@ -230,6 +234,10 @@ class MTVideoCallPlugin {
       ..on<ParticipantDisconnectedEvent>((event) {
         MTLog.logI(message: "ParticipantDisconnectedEvent ${event.participant.toString()}");
         MTObserving.observingParticipantDisconnected(event);
+      })
+      ..on<ParticipantConnectedEvent>((event) {
+        MTLog.logI(message: "ParticipantDisconnectedEvent ${event.participant.toString()}");
+        MTObserving.observingParticipantConnected(event);
       })
       ..on<LocalTrackPublishedEvent>((event) {
         MTLog.logI(message: "LocalTrackPublishedEvent ${event.publication.toString()}");

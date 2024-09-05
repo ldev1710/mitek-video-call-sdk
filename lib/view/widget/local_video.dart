@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart' as rtc;
 import 'package:livekit_client/livekit_client.dart';
-import 'package:mitek_video_call_sdk/view/video/video_widget.dart';
+import 'package:mitek_video_call_sdk/view/widget/video_widget.dart';
 
 class LocalVideoWidget extends StatefulWidget {
   LocalVideoWidget({

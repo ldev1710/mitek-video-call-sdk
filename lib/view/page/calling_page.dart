@@ -1,20 +1,18 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_webrtc/flutter_webrtc.dart' as rtc;
 import 'package:livekit_client/livekit_client.dart';
 import 'package:mitek_video_call_sdk/listen/publisher/room_publisher.dart';
 import 'package:mitek_video_call_sdk/listen/publisher/track_publisher.dart';
 import 'package:mitek_video_call_sdk/mitek_video_call_sdk.dart';
 import 'package:mitek_video_call_sdk/models/queue.dart';
 import 'package:mitek_video_call_sdk/models/user.dart';
-import 'package:mitek_video_call_sdk/view/video/video_widget.dart';
-import 'package:mitek_video_call_sdk_eample/app_log.dart';
-import 'package:mitek_video_call_sdk_eample/pages/widget/local_video.dart';
+import 'package:mitek_video_call_sdk/view/widget/grid_track.dart';
+import 'package:mitek_video_call_sdk/view/widget/local_video.dart';
 import 'package:pip_view/pip_view.dart';
 
-class CallingPage extends StatefulWidget {
-  CallingPage({
+class MTCallingPage extends StatefulWidget {
+  MTCallingPage({
     required this.user,
     required this.device,
     required this.queue,
@@ -25,10 +23,10 @@ class CallingPage extends StatefulWidget {
   MediaDevice device;
 
   @override
-  State<CallingPage> createState() => _CallingPageState();
+  State<MTCallingPage> createState() => _MTCallingPageState();
 }
 
-class _CallingPageState extends State<CallingPage> with MTRoomEventListener, MTTrackListener {
+class _MTCallingPageState extends State<MTCallingPage> with MTRoomEventListener, MTTrackListener {
   bool isLaunching = true;
 
   @override
@@ -44,8 +42,8 @@ class _CallingPageState extends State<CallingPage> with MTRoomEventListener, MTT
   bool enableMicro = true;
   bool isRemoteEnableCamera = false;
   bool isRemoteEnableMic = false;
-
-  VideoTrack? _remoteVideoTrack;
+  bool participantJoined = false;
+  List<Participant> participant = [];
   late MediaDevice inputVideo;
   late Timer _timer;
   int countTime = 0;
@@ -63,7 +61,7 @@ class _CallingPageState extends State<CallingPage> with MTRoomEventListener, MTT
       setState(() {
         countTime++;
       });
-      if (countTime == 30 && _remoteVideoTrack == null) {
+      if (countTime == room.emptyTimeOut && !participantJoined) {
         _timer.cancel();
         MTVideoCallPlugin.instance.disconnectVideoCall();
       }
@@ -101,22 +99,41 @@ class _CallingPageState extends State<CallingPage> with MTRoomEventListener, MTT
           alignment: Alignment.center,
           fit: StackFit.expand,
           children: [
-            _remoteVideoTrack != null
-                ? isRemoteEnableCamera
-                    ? MTVideoRender(
-                        _remoteVideoTrack!,
-                        fit: rtc.RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                        mirrorMode: VideoViewMirrorMode.off,
-                      )
-                    : Container(
-                        color: Colors.grey.shade200,
-                        alignment: Alignment.center,
-                        child: const Icon(
-                          Icons.videocam_off,
-                          color: Colors.black,
-                          size: 78,
-                        ),
-                      )
+            participantJoined
+                ? GridTrack(
+                    lcPart: MTVideoCallPlugin.instance.currRoom!.localParticipant!,
+                    rmPart: MTVideoCallPlugin.instance.currRoom!.remoteParticipants.values
+                        .toList()
+                        .first,
+                  )
+                // Row(
+                //     children: [
+                //       isRemoteEnableCamera
+                //           ? MTVideoRender(
+                //               _remoteVideoTrack!,
+                //               fit: rtc.RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                //               mirrorMode: VideoViewMirrorMode.off,
+                //             )
+                //           : Container(
+                //               color: Colors.grey.shade200,
+                //               alignment: Alignment.center,
+                //               child: const Icon(
+                //                 Icons.videocam_off,
+                //                 color: Colors.black,
+                //                 size: 78,
+                //               ),
+                //             ),
+                //       if (_remoteScreenTrack != null)
+                //         Container(
+                //           margin: const EdgeInsets.only(left: 4),
+                //           child: MTVideoRender(
+                //             _remoteScreenTrack!,
+                //             fit: rtc.RTCVideoViewObjectFit.RTCVideoViewObjectFitContain,
+                //             mirrorMode: VideoViewMirrorMode.off,
+                //           ),
+                //         ),
+                //     ],
+                //   )
                 : Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -141,24 +158,6 @@ class _CallingPageState extends State<CallingPage> with MTRoomEventListener, MTT
                       ),
                     ],
                   ),
-            Positioned(
-              top: 12,
-              left: 12,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  if (!isRemoteEnableMic)
-                    Container(
-                      margin: const EdgeInsets.only(left: 24, top: 32),
-                      padding: const EdgeInsets.all(12),
-                      child: const Icon(
-                        Icons.mic_off,
-                        color: Colors.black,
-                      ),
-                    ),
-                ],
-              ),
-            ),
             Positioned(
               bottom: 12,
               left: 0,
@@ -224,13 +223,6 @@ class _CallingPageState extends State<CallingPage> with MTRoomEventListener, MTT
     );
   }
 
-  void updateRemoteTrack(RemoteParticipant participant) {
-    setState(() {
-      isRemoteEnableCamera = !participant.videoTrackPublications.first.muted;
-      isRemoteEnableMic = !participant.audioTrackPublications.first.muted;
-    });
-  }
-
   Widget ctnWithOp({
     required void Function() onPressed,
     required IconData iconData,
@@ -256,14 +248,12 @@ class _CallingPageState extends State<CallingPage> with MTRoomEventListener, MTT
   void onConnectedRoom(Room room, String? metaData) {
     // TODO: implement onConnectedRoom
     super.onConnectedRoom(room, metaData);
-    AppLog.logI("onConnectedRoom: $room");
   }
 
   @override
   void onDisconnectedRoom(DisconnectReason? reason) async {
     // TODO: implement onDisconnectedRoom
     super.onDisconnectedRoom(reason);
-    AppLog.logI("onDisconnectedRoom: $reason");
     _timer.cancel();
     MTVideoCallPlugin.instance.removeMTRoomEventListener(this);
     MTVideoCallPlugin.instance.removeMTTrackEventListener(this);
@@ -274,15 +264,16 @@ class _CallingPageState extends State<CallingPage> with MTRoomEventListener, MTT
   void onParticipantConnectedRoom(RemoteParticipant participant) {
     // TODO: implement onParticipantConnectedRoom
     super.onParticipantConnectedRoom(participant);
-    AppLog.logI("onParticipantConnectedRoom: $participant");
-    _timer.cancel();
+    setState(() {
+      _timer.cancel();
+      participantJoined = true;
+    });
   }
 
   @override
   void onParticipantDisconnectedRoom(RemoteParticipant participant) async {
     // TODO: implement onParticipantDisconnectedRoom
     super.onParticipantDisconnectedRoom(participant);
-    AppLog.logI("onParticipantDisconnectedRoom: $participant");
     await MTVideoCallPlugin.instance.disconnectVideoCall();
   }
 
@@ -292,7 +283,7 @@ class _CallingPageState extends State<CallingPage> with MTRoomEventListener, MTT
     // TODO: implement onRemoteUnMutedTrack
     super.onRemoteUnMutedTrack(publication, participant);
     print("onRemoteUnMutedTrack: Called");
-    updateRemoteTrack(participant as RemoteParticipant);
+    setState(() {});
   }
 
   @override
@@ -300,7 +291,7 @@ class _CallingPageState extends State<CallingPage> with MTRoomEventListener, MTT
     // TODO: implement onRemoteMutedTrack
     super.onRemoteMutedTrack(publication, participant);
     print("onRemoteMutedTrack: Called");
-    updateRemoteTrack(participant as RemoteParticipant);
+    setState(() {});
   }
 
   @override
@@ -308,7 +299,6 @@ class _CallingPageState extends State<CallingPage> with MTRoomEventListener, MTT
       LocalParticipant localParticipant, LocalTrackPublication<LocalTrack> publication) {
     // TODO: implement onLocalTrackPublished
     super.onLocalTrackPublished(localParticipant, publication);
-    AppLog.logI("onLocalTrackPublished: $localParticipant");
     setState(() {});
   }
 
@@ -317,14 +307,12 @@ class _CallingPageState extends State<CallingPage> with MTRoomEventListener, MTT
       LocalParticipant localParticipant, LocalTrackPublication<LocalTrack> publication) {
     // TODO: implement onLocalTrackUnPublished
     super.onLocalTrackUnPublished(localParticipant, publication);
-    AppLog.logI("onLocalTrackUnPublished: $localParticipant");
   }
 
   @override
   void onReceiveData(List<int> data, RemoteParticipant? participant, String? topic) {
     // TODO: implement onReceiveData
     super.onReceiveData(data, participant, topic);
-    AppLog.logI("onReceiveData: $data");
   }
 
   @override
@@ -332,13 +320,7 @@ class _CallingPageState extends State<CallingPage> with MTRoomEventListener, MTT
       RemoteTrackPublication<RemoteTrack> publication, RemoteParticipant participant, Track track) {
     // TODO: implement onTrackSubscribed
     super.onTrackSubscribed(publication, participant, track);
-    AppLog.logI("onTrackSubscribed: $participant");
-    setState(() {
-      if (publication.source == TrackSource.camera) {
-        _remoteVideoTrack = publication.track as VideoTrack?;
-      }
-      updateRemoteTrack(participant);
-    });
+    setState(() {});
   }
 
   @override
@@ -346,6 +328,9 @@ class _CallingPageState extends State<CallingPage> with MTRoomEventListener, MTT
       RemoteTrackPublication<RemoteTrack> publication, RemoteParticipant participant, Track track) {
     // TODO: implement onTrackUnSubscribed
     super.onTrackUnSubscribed(publication, participant, track);
-    AppLog.logI("onTrackUnSubscribed: $participant");
+    if (MTVideoCallPlugin.instance.currRoom!.remoteParticipants.values.toList().firstOrNull !=
+        null) {
+      setState(() {});
+    }
   }
 }
