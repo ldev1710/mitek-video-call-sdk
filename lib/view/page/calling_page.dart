@@ -172,7 +172,7 @@ class _MTCallingPageState extends State<MTCallingPage> with MTRoomEventListener,
                             .getDeviceVideoInput()
                             .where((element) => element.deviceId != inputVideo.deviceId)
                             .first;
-                        MTVideoCallPlugin.instance.changeLocalVideoTrack(inputVideo);
+                        MTVideoCallPlugin.instance.changeVideoTrack(inputVideo);
                       });
                     },
                     iconData: Icons.cameraswitch,

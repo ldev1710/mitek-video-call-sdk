@@ -25,12 +25,9 @@ class MTVideoCallPlugin {
   }
   bool _isAuthenticated = false;
   bool _isVideoCalling = false;
-  bool _isEnableVideo = false;
-  bool _isEnableAudio = false;
   final List<MTRoomEventListener> _roomListener = [];
   final List<MTTrackListener> _trackListener = [];
   String? _wssUrl;
-  String? _socketUrl;
   EventsListener<RoomEvent>? _roomCoreListener;
   LocalAudioTrack? _audioTrack;
   LocalVideoTrack? _videoTrack;
@@ -59,12 +56,13 @@ class MTVideoCallPlugin {
     _isAuthenticated = response.statusCode == 200;
     if (_isAuthenticated) {
       _instanceNetwork.setApiKey(apiKey: apiKey);
+    } else {
+      return false;
     }
     String decodeBase64 = utf8.decode(base64.decode(response.data['data']));
     Map<String, dynamic> mapData = json.decode(decodeBase64);
     _queues = List<MTQueue>.from(mapData['list_queues'].map((e) => MTQueue.fromJson(e)));
     _wssUrl = mapData['wss_url'];
-    _socketUrl = mapData['socket_url'];
     Hardware.instance.onDeviceChange.stream.listen(_loadDevices);
     List<MediaDevice> devices = await Hardware.instance.enumerateDevices();
     _loadDevices(devices);
@@ -193,10 +191,10 @@ class MTVideoCallPlugin {
     }
   }
 
-  Future<void> changeLocalVideoTrack(MediaDevice select) async {
+  Future<void> changeVideoTrack(MediaDevice select) async {
     _selectedVideoDevice = select;
 
-    if (_selectedVideoDevice != null) {
+    if (_selectedVideoDevice != null && _isVideoCalling) {
       await _room!.setVideoInputDevice(_selectedVideoDevice!);
     }
   }
@@ -208,6 +206,10 @@ class MTVideoCallPlugin {
 
   void _setUpListener() {
     _roomCoreListener!
+      ..on<ParticipantConnectedEvent>((event) async {
+        MTLog.logI(message: "ParticipantDisconnectedEvent ${event.participant.toString()}");
+        MTObserving.observingParticipantConnected(event);
+      })
       ..on<RoomDisconnectedEvent>((event) async {
         MTLog.logI(message: "RoomDisconnectedEvent ${event.reason.toString()}");
         try {
@@ -234,10 +236,6 @@ class MTVideoCallPlugin {
       ..on<ParticipantDisconnectedEvent>((event) {
         MTLog.logI(message: "ParticipantDisconnectedEvent ${event.participant.toString()}");
         MTObserving.observingParticipantDisconnected(event);
-      })
-      ..on<ParticipantConnectedEvent>((event) {
-        MTLog.logI(message: "ParticipantDisconnectedEvent ${event.participant.toString()}");
-        MTObserving.observingParticipantConnected(event);
       })
       ..on<LocalTrackPublishedEvent>((event) {
         MTLog.logI(message: "LocalTrackPublishedEvent ${event.publication.toString()}");
