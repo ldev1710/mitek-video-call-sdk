@@ -1,3 +1,6 @@
+## 0.1.2
+* Update example
+
 ## 0.1.1
 * Update readme.md file
 

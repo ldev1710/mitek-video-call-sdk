@@ -1,7 +1,10 @@
 # This is a generated file; do not edit or check into version control.
 connectivity_plus=/Users/devappmitek/.pub-cache/hosted/pub.dev/connectivity_plus-6.0.5/
 device_info_plus=/Users/devappmitek/.pub-cache/hosted/pub.dev/device_info_plus-10.1.2/
+flutter_foreground_task=/Users/devappmitek/.pub-cache/hosted/pub.dev/flutter_foreground_task-6.5.0/
+flutter_screen_recording_web=/Users/devappmitek/.pub-cache/hosted/pub.dev/flutter_screen_recording_web-1.0.6/
 flutter_webrtc=/Users/devappmitek/.pub-cache/hosted/pub.dev/flutter_webrtc-0.11.6+hotfix.1/
+ldev_screen_recording=/Users/devappmitek/.pub-cache/hosted/pub.dev/ldev_screen_recording-0.0.4/
 livekit_client=/Users/devappmitek/.pub-cache/hosted/pub.dev/livekit_client-2.2.4/
 path_provider=/Users/devappmitek/.pub-cache/hosted/pub.dev/path_provider-2.1.4/
 path_provider_android=/Users/devappmitek/.pub-cache/hosted/pub.dev/path_provider_android-2.2.4/
@@ -13,3 +16,9 @@ permission_handler_android=/Users/devappmitek/.pub-cache/hosted/pub.dev/permissi
 permission_handler_apple=/Users/devappmitek/.pub-cache/hosted/pub.dev/permission_handler_apple-9.4.5/
 permission_handler_html=/Users/devappmitek/.pub-cache/hosted/pub.dev/permission_handler_html-0.1.1/
 permission_handler_windows=/Users/devappmitek/.pub-cache/hosted/pub.dev/permission_handler_windows-0.2.1/
+shared_preferences=/Users/devappmitek/.pub-cache/hosted/pub.dev/shared_preferences-2.2.3/
+shared_preferences_android=/Users/devappmitek/.pub-cache/hosted/pub.dev/shared_preferences_android-2.2.2/
+shared_preferences_foundation=/Users/devappmitek/.pub-cache/hosted/pub.dev/shared_preferences_foundation-2.5.2/
+shared_preferences_linux=/Users/devappmitek/.pub-cache/hosted/pub.dev/shared_preferences_linux-2.4.1/
+shared_preferences_web=/Users/devappmitek/.pub-cache/hosted/pub.dev/shared_preferences_web-2.4.1/
+shared_preferences_windows=/Users/devappmitek/.pub-cache/hosted/pub.dev/shared_preferences_windows-2.4.1/

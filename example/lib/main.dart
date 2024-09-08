@@ -41,6 +41,8 @@ class _MyHomePageState extends State<MyHomePage> {
   MediaDevice? videoInputSelected;
   double space = 18;
 
+  bool isRecording = false;
+
   final TextEditingController _nameCtrl = TextEditingController();
   final TextEditingController _phoneCtrl = TextEditingController();
   final TextEditingController _emailCtrl = TextEditingController();
@@ -49,7 +51,6 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     // TODO: implement initState
     super.initState();
-    _nameCtrl.text = "Dien test sdk";
     authenticate();
   }
 
@@ -92,7 +93,14 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
+        onPressed: () async {
+          // if (isRecording) {
+          //   MTVideoCallPlugin.instance.stopRc();
+          // } else {
+          //   MTVideoCallPlugin.instance.startRc();
+          // }
+          //
+          // isRecording = !isRecording;
           Navigator.push(
             context,
             MaterialPageRoute(

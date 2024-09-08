@@ -79,7 +79,7 @@ class _MTCallingPageState extends State<MTCallingPage> with MTRoomEventListener,
       body: RawPIPView(
         floatingWidth: size.width * 0.4,
         floatingHeight: size.height * 0.3,
-        topWidget: isLaunching
+        topWidget: isLaunching //
             ? const Center(child: CircularProgressIndicator())
             : enableCamera
                 ? LocalVideoWidget(
@@ -106,34 +106,6 @@ class _MTCallingPageState extends State<MTCallingPage> with MTRoomEventListener,
                         .toList()
                         .first,
                   )
-                // Row(
-                //     children: [
-                //       isRemoteEnableCamera
-                //           ? MTVideoRender(
-                //               _remoteVideoTrack!,
-                //               fit: rtc.RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                //               mirrorMode: VideoViewMirrorMode.off,
-                //             )
-                //           : Container(
-                //               color: Colors.grey.shade200,
-                //               alignment: Alignment.center,
-                //               child: const Icon(
-                //                 Icons.videocam_off,
-                //                 color: Colors.black,
-                //                 size: 78,
-                //               ),
-                //             ),
-                //       if (_remoteScreenTrack != null)
-                //         Container(
-                //           margin: const EdgeInsets.only(left: 4),
-                //           child: MTVideoRender(
-                //             _remoteScreenTrack!,
-                //             fit: rtc.RTCVideoViewObjectFit.RTCVideoViewObjectFitContain,
-                //             mirrorMode: VideoViewMirrorMode.off,
-                //           ),
-                //         ),
-                //     ],
-                //   )
                 : Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

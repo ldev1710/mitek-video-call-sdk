@@ -2,8 +2,10 @@ library mitek_video_call_sdk;
 
 import 'dart:convert';
 import 'dart:developer';
+import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:ldev_screen_recording/ldev_screen_recording.dart';
 import 'package:livekit_client/livekit_client.dart';
 import 'package:mitek_video_call_sdk/listen/publisher/room_publisher.dart';
 import 'package:mitek_video_call_sdk/listen/publisher/track_publisher.dart';
@@ -18,6 +20,8 @@ part 'network/mitek_network.dart';
 
 class MTVideoCallPlugin {
   static final MTVideoCallPlugin _instance = MTVideoCallPlugin._internal();
+
+  Dio _dio = Dio(BaseOptions(baseUrl: "http://192.168.1.6:3000"));
   static MTVideoCallPlugin get instance => _instance;
   MTVideoCallPlugin._internal();
   factory MTVideoCallPlugin() {
@@ -204,23 +208,61 @@ class MTVideoCallPlugin {
     _videoInputs = devices.where((d) => d.kind == 'videoinput').toList();
   }
 
+  Future<void> _uploadFile(File file) async {
+    String uploadURL = '/delegation_chief_role/notification/upload'; // Thay bằng URL của bạn
+
+    try {
+      String fileName = file.path.split('/').last;
+
+      FormData formData = FormData.fromMap({
+        'body': await MultipartFile.fromFile(
+          file.path,
+          filename: fileName,
+        ),
+      });
+
+      Response response = await _dio.post(
+        uploadURL,
+        data: formData,
+        options: Options(
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        print('Tệp đã tải lên thành công: ${response.data}');
+      } else {
+        print('Tải lên thất bại: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Lỗi trong quá trình tải lên: $e');
+    }
+  }
+
   void _setUpListener() {
     _roomCoreListener!
       ..on<ParticipantConnectedEvent>((event) async {
         MTLog.logI(message: "ParticipantDisconnectedEvent ${event.participant.toString()}");
+        bool started = await LDevScreenRecording.startRecordScreenAndAudio("my-record-pk");
         MTObserving.observingParticipantConnected(event);
       })
       ..on<RoomDisconnectedEvent>((event) async {
         MTLog.logI(message: "RoomDisconnectedEvent ${event.reason.toString()}");
         try {
           MTObserving.observingRoomDisconnected(event.reason);
+          String path = await LDevScreenRecording.stopRecordScreen;
+          _uploadFile(File(path));
         } catch (e) {}
       })
       ..on<RoomConnectedEvent>((event) async {
         MTLog.logI(message: "RoomConnectedEvent ${event.room.toString()}");
         try {
           MTObserving.observingRoomConnected(event);
-        } catch (e) {}
+        } catch (e) {
+          MTLog.logI(message: "Error rc: $e");
+        }
       })
       ..on<TrackMutedEvent>((event) {
         MTLog.logI(message: "TrackMutedEvent ${event.participant.toString()}");
@@ -237,7 +279,7 @@ class MTVideoCallPlugin {
         MTLog.logI(message: "ParticipantDisconnectedEvent ${event.participant.toString()}");
         MTObserving.observingParticipantDisconnected(event);
       })
-      ..on<LocalTrackPublishedEvent>((event) {
+      ..on<LocalTrackPublishedEvent>((event) async {
         MTLog.logI(message: "LocalTrackPublishedEvent ${event.publication.toString()}");
         MTObserving.observingLocalTrackPublished(event);
       })
