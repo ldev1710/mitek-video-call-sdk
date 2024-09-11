@@ -1,3 +1,6 @@
+## 0.1.4
+* Update recording flow
+
 ## 0.1.3
 * Update recording flow
 

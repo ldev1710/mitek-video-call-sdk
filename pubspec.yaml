@@ -1,6 +1,6 @@
 name: mitek_video_call_sdk
 description: "A package for video call easily."
-version: 0.1.3
+version: 0.1.4
 homepage: https://mitek.vn/
 
 environment:

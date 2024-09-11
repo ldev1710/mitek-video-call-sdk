@@ -124,7 +124,11 @@ class _MTCallingPageState extends State<MTCallingPage> with MTRoomEventListener,
                           ),
                         ),
               bottomWidget: isFloating
-                  ? participantJoined
+                  ? participantJoined &&
+                          MTVideoCallPlugin.instance.currRoom!.remoteParticipants.values
+                                  .toList()
+                                  .firstOrNull !=
+                              null
                       ? GridTrack(
                           lcPart: MTVideoCallPlugin.instance.currRoom!.localParticipant!,
                           rmPart: MTVideoCallPlugin.instance.currRoom!.remoteParticipants.values
