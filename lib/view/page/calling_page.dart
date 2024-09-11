@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:livekit_client/livekit_client.dart';
 import 'package:mitek_video_call_sdk/listen/publisher/room_publisher.dart';
@@ -13,6 +14,7 @@ import 'package:pip_view/pip_view.dart';
 
 class MTCallingPage extends StatefulWidget {
   MTCallingPage({
+    super.key,
     required this.user,
     required this.device,
     required this.queue,
@@ -28,16 +30,7 @@ class MTCallingPage extends StatefulWidget {
 
 class _MTCallingPageState extends State<MTCallingPage> with MTRoomEventListener, MTTrackListener {
   bool isLaunching = true;
-
-  @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-    MTVideoCallPlugin.instance.addMTRoomEventListener(this);
-    MTVideoCallPlugin.instance.addMTTrackEventListener(this);
-    initTest();
-  }
-
+  final player = AudioPlayer();
   bool enableCamera = true;
   bool enableMicro = true;
   bool isRemoteEnableCamera = false;
@@ -47,91 +40,128 @@ class _MTCallingPageState extends State<MTCallingPage> with MTRoomEventListener,
   late MediaDevice inputVideo;
   late Timer _timer;
   int countTime = 0;
+  bool isFloating = false;
 
-  Future<void> initTest() async {
-    inputVideo = widget.device;
-    final room = await MTVideoCallPlugin.instance.startVideoCall(
-      user: widget.user,
-      queue: widget.queue,
-    );
-    await MTVideoCallPlugin.instance.setInputVideo(inputVideo);
-    final isCnSuccess = await MTVideoCallPlugin.instance
-        .connect2Room(queue: widget.queue, user: widget.user, room: room);
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        countTime++;
-      });
-      if (countTime == room.emptyTimeOut && !participantJoined) {
-        _timer.cancel();
-        MTVideoCallPlugin.instance.disconnectVideoCall();
-      }
-    });
-    setState(() {
-      isLaunching = false;
-    });
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    MTVideoCallPlugin.instance.addMTRoomEventListener(this);
+    MTVideoCallPlugin.instance.addMTTrackEventListener(this);
+    initCalling();
   }
 
   @override
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
+    if (widget.user.name.isEmpty) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                "Full name of user can not be empty!",
+                style: TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 24),
+              MaterialButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                color: Colors.blue,
+                child: const Text(
+                  "Back",
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     return Scaffold(
       backgroundColor: Colors.white,
-      body: RawPIPView(
-        floatingWidth: size.width * 0.4,
-        floatingHeight: size.height * 0.3,
-        topWidget: isLaunching //
-            ? const Center(child: CircularProgressIndicator())
-            : enableCamera
-                ? LocalVideoWidget(
-                    videoTrack: MTVideoCallPlugin.instance.localVideoTrack!,
-                    backgroundWidget: widget,
-                  )
-                : Container(
-                    color: Colors.grey.shade200,
-                    alignment: Alignment.center,
-                    child: const Icon(
-                      Icons.videocam_off,
-                      color: Colors.black,
-                      size: 48,
-                    ),
-                  ),
-        bottomWidget: Stack(
-          alignment: Alignment.center,
+      body: PopScope(
+        canPop: false,
+        onPopInvoked: (willPop) {
+          setState(() => isFloating = true);
+        },
+        child: Stack(
           fit: StackFit.expand,
+          alignment: Alignment.center,
           children: [
-            participantJoined
-                ? GridTrack(
-                    lcPart: MTVideoCallPlugin.instance.currRoom!.localParticipant!,
-                    rmPart: MTVideoCallPlugin.instance.currRoom!.remoteParticipants.values
-                        .toList()
-                        .first,
-                  )
-                : Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.person,
-                        color: Colors.grey,
-                        size: 78,
-                      ),
-                      Text(
-                        "${(countTime ~/ 60).toString().padLeft(2, '0')}:${(countTime % 60).toString().padLeft(2, '0')}",
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 18,
+            RawPIPView(
+              floatingWidth: size.width * 0.4,
+              floatingHeight: size.height * 0.3,
+              onTapTopWidget: isFloating ? stopFloating : null,
+              topWidget: isLaunching //
+                  ? const Center(child: CircularProgressIndicator())
+                  : enableCamera
+                      ? IgnorePointer(
+                          ignoring: isFloating,
+                          child: LocalVideoWidget(
+                            videoTrack: MTVideoCallPlugin.instance.localVideoTrack!,
+                            backgroundWidget: widget,
+                            isFloating: isFloating,
+                            onPop: () {
+                              setState(() => isFloating = true);
+                            },
+                          ),
+                        )
+                      : Container(
+                          color: Colors.grey.shade200,
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            Icons.videocam_off,
+                            color: Colors.black,
+                            size: 48,
+                          ),
                         ),
-                      ),
-                      const Text(
-                        "Connecting...",
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
+              bottomWidget: isFloating
+                  ? participantJoined
+                      ? GridTrack(
+                          lcPart: MTVideoCallPlugin.instance.currRoom!.localParticipant!,
+                          rmPart: MTVideoCallPlugin.instance.currRoom!.remoteParticipants.values
+                              .toList()
+                              .first,
+                        )
+                      : Center(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.person,
+                                color: Colors.grey,
+                                size: 78,
+                              ),
+                              Text(
+                                "${(countTime ~/ 60).toString().padLeft(2, '0')}:${(countTime % 60).toString().padLeft(2, '0')}",
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 18,
+                                ),
+                              ),
+                              const Text(
+                                "Connecting...",
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                  : null,
+            ),
             Positioned(
-              bottom: 12,
+              bottom: 24,
               left: 0,
               right: 0,
               child: Row(
@@ -147,7 +177,7 @@ class _MTCallingPageState extends State<MTCallingPage> with MTRoomEventListener,
                         MTVideoCallPlugin.instance.changeVideoTrack(inputVideo);
                       });
                     },
-                    iconData: Icons.cameraswitch,
+                    iconData: Icons.sync,
                     isSelected: false,
                   ),
                   ctnWithOp(
@@ -195,6 +225,42 @@ class _MTCallingPageState extends State<MTCallingPage> with MTRoomEventListener,
     );
   }
 
+  Future<void> initCalling() async {
+    if (widget.user.name.isEmpty) return;
+    inputVideo = widget.device;
+    final room = await MTVideoCallPlugin.instance.startVideoCall(
+      user: widget.user,
+      queue: widget.queue,
+    );
+    await MTVideoCallPlugin.instance.setInputVideo(inputVideo);
+    final isCnSuccess = await MTVideoCallPlugin.instance
+        .connect2Room(queue: widget.queue, user: widget.user, room: room);
+    await player.setVolume(1);
+    await player.play(UrlSource(widget.queue.musicHoldUrl));
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) async {
+      setState(() {
+        countTime++;
+      });
+      if (countTime == room.emptyTimeOut && !participantJoined) {
+        await player.play(UrlSource(widget.queue.musicTimeOutUrl));
+      }
+    });
+    player.onPlayerComplete.listen((event) async {
+      if (countTime >= room.emptyTimeOut && !participantJoined) {
+        _timer.cancel();
+        MTVideoCallPlugin.instance.disconnectVideoCall();
+      }
+    });
+    setState(() {
+      isLaunching = false;
+      isFloating = true;
+    });
+  }
+
+  void stopFloating() {
+    setState(() => isFloating = false);
+  }
+
   Widget ctnWithOp({
     required void Function() onPressed,
     required IconData iconData,
@@ -226,16 +292,18 @@ class _MTCallingPageState extends State<MTCallingPage> with MTRoomEventListener,
   void onDisconnectedRoom(DisconnectReason? reason) async {
     // TODO: implement onDisconnectedRoom
     super.onDisconnectedRoom(reason);
-    _timer.cancel();
     MTVideoCallPlugin.instance.removeMTRoomEventListener(this);
     MTVideoCallPlugin.instance.removeMTTrackEventListener(this);
+    _timer.cancel();
+    await player.stop();
     Navigator.pop(context);
   }
 
   @override
-  void onParticipantConnectedRoom(RemoteParticipant participant) {
+  void onParticipantConnectedRoom(RemoteParticipant participant) async {
     // TODO: implement onParticipantConnectedRoom
     super.onParticipantConnectedRoom(participant);
+    await player.stop();
     setState(() {
       _timer.cancel();
       participantJoined = true;

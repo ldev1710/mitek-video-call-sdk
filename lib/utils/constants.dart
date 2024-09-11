@@ -8,4 +8,5 @@ class MTNetworkConstant {
   static const String authenticate = "/getConfigVideoCall";
   static const String createConnection = "/createConnection";
   static const String createRoom = "/createRoom";
+  static String uploadRecord = '/uploadRecording';
 }

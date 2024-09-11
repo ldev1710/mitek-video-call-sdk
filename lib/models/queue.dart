@@ -3,12 +3,16 @@ class MTQueue {
   String queueName;
   String queueDisplay;
   int maxWaitTime;
+  String musicHoldUrl;
+  String musicTimeOutUrl;
 
   MTQueue({
     required this.queueNum,
     required this.queueName,
     required this.queueDisplay,
     required this.maxWaitTime,
+    required this.musicHoldUrl,
+    required this.musicTimeOutUrl,
   });
 
   Map<String, dynamic> toJson() {
@@ -26,6 +30,8 @@ class MTQueue {
       queueName: json["queue_name"],
       queueDisplay: json["queue_display"],
       maxWaitTime: json["max_wait_time"],
+      musicHoldUrl: json['music_on_hold_url'] ?? '',
+      musicTimeOutUrl: json['music_on_timeout_url'] ?? '',
     );
   }
 }

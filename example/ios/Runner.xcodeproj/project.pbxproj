@@ -114,7 +114,6 @@
 				79F392914383356DB39B40E0 /* Pods-RunnerTests.release.xcconfig */,
 				E36E9B3E05E32E5269193A2F /* Pods-RunnerTests.profile.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};

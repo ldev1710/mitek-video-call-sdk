@@ -8,10 +8,14 @@ class LocalVideoWidget extends StatefulWidget {
     super.key,
     required this.videoTrack,
     required this.backgroundWidget,
+    required this.isFloating,
+    this.onPop,
   });
 
+  bool isFloating;
   VideoTrack videoTrack;
   Widget backgroundWidget;
+  void Function()? onPop;
   @override
   State<LocalVideoWidget> createState() => _LocalVideoWidgetState();
 }
@@ -19,10 +23,36 @@ class LocalVideoWidget extends StatefulWidget {
 class _LocalVideoWidgetState extends State<LocalVideoWidget> {
   @override
   Widget build(BuildContext context) {
-    return MTVideoRender(
-      widget.videoTrack,
-      fit: rtc.RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-      mirrorMode: VideoViewMirrorMode.off,
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        MTVideoRender(
+          widget.videoTrack,
+          fit: rtc.RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+          mirrorMode: VideoViewMirrorMode.off,
+        ),
+        if (!widget.isFloating)
+          Positioned(
+            top: 48,
+            left: 12,
+            child: GestureDetector(
+              onTap: () {
+                if (widget.onPop != null) widget.onPop!();
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.5),
+                  shape: BoxShape.circle,
+                ),
+                padding: const EdgeInsets.all(8),
+                child: const Icon(
+                  Icons.arrow_back,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

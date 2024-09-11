@@ -1,10 +1,10 @@
 library mitek_video_call_sdk;
 
 import 'dart:convert';
-import 'dart:developer';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:intl/intl.dart';
 import 'package:ldev_screen_recording/ldev_screen_recording.dart';
 import 'package:livekit_client/livekit_client.dart';
 import 'package:mitek_video_call_sdk/listen/publisher/room_publisher.dart';
@@ -21,7 +21,6 @@ part 'network/mitek_network.dart';
 class MTVideoCallPlugin {
   static final MTVideoCallPlugin _instance = MTVideoCallPlugin._internal();
 
-  Dio _dio = Dio(BaseOptions(baseUrl: "http://192.168.1.6:3000"));
   static MTVideoCallPlugin get instance => _instance;
   MTVideoCallPlugin._internal();
   factory MTVideoCallPlugin() {
@@ -29,12 +28,15 @@ class MTVideoCallPlugin {
   }
   bool _isAuthenticated = false;
   bool _isVideoCalling = false;
+  bool _isRecording = false;
+  bool _isAgentJoined = false;
   final List<MTRoomEventListener> _roomListener = [];
   final List<MTTrackListener> _trackListener = [];
   String? _wssUrl;
   EventsListener<RoomEvent>? _roomCoreListener;
   LocalAudioTrack? _audioTrack;
   LocalVideoTrack? _videoTrack;
+  MTRoom? currMTRoom;
   LocalVideoTrack? get localVideoTrack => _videoTrack;
   LocalAudioTrack? get localAudioTrack => _audioTrack;
   MediaDevice? _selectedVideoDevice;
@@ -118,8 +120,8 @@ class MTVideoCallPlugin {
       MTNetworkConstant.createRoom,
       data: body,
     );
-    final room = MTRoom.fromJson(response.data['data']);
-    return room;
+    currMTRoom = MTRoom.fromJson(response.data['data']);
+    return currMTRoom!;
   }
 
   /// Call this function to start video call to MITEK system
@@ -129,6 +131,7 @@ class MTVideoCallPlugin {
     required MTRoom room,
   }) async {
     _isValid();
+    currMTRoom = room;
     Map<String, dynamic> body = {
       "queue_num": queue.queueNum,
       "queue_name": queue.queueName,
@@ -142,7 +145,6 @@ class MTVideoCallPlugin {
       data: body,
     );
     _videoCallToken = response.data['data'];
-    log("_videoCallToken: $_videoCallToken");
     _room = Room();
     _videoTrack = await LocalVideoTrack.createCameraTrack(
       CameraCaptureOptions(
@@ -209,20 +211,20 @@ class MTVideoCallPlugin {
   }
 
   Future<void> _uploadFile(File file) async {
-    String uploadURL = '/delegation_chief_role/notification/upload'; // Thay bằng URL của bạn
-
     try {
       String fileName = file.path.split('/').last;
-
+      MTLog.logI(message: "File name: $fileName");
+      DateTime now = DateTime.now();
       FormData formData = FormData.fromMap({
-        'body': await MultipartFile.fromFile(
+        'post_files': await MultipartFile.fromFile(
           file.path,
           filename: fileName,
         ),
+        'created_time': DateFormat('yyyy-MM-dd').format(now),
       });
 
-      Response response = await _dio.post(
-        uploadURL,
+      Response response = await _instanceNetwork.post(
+        MTNetworkConstant.uploadRecord,
         data: formData,
         options: Options(
           headers: {
@@ -230,30 +232,37 @@ class MTVideoCallPlugin {
           },
         ),
       );
-
       if (response.statusCode == 200) {
-        print('Tệp đã tải lên thành công: ${response.data}');
+        MTLog.logI(message: "Upload file success");
       } else {
-        print('Tải lên thất bại: ${response.statusCode}');
+        MTLog.logI(message: "Upload file failed");
       }
     } catch (e) {
-      print('Lỗi trong quá trình tải lên: $e');
+      MTLog.logI(message: "Upload file failed: $e");
     }
   }
 
   void _setUpListener() {
     _roomCoreListener!
       ..on<ParticipantConnectedEvent>((event) async {
-        MTLog.logI(message: "ParticipantDisconnectedEvent ${event.participant.toString()}");
-        bool started = await LDevScreenRecording.startRecordScreenAndAudio("my-record-pk");
+        _isAgentJoined = true;
+        MTLog.logI(message: "ParticipantConnectedEvent ${event.participant.toString()}");
         MTObserving.observingParticipantConnected(event);
+        if (Platform.isAndroid) {
+          _isRecording = await LDevScreenRecording.startRecordScreenAndAudio(currMTRoom!.roomId);
+        }
       })
       ..on<RoomDisconnectedEvent>((event) async {
         MTLog.logI(message: "RoomDisconnectedEvent ${event.reason.toString()}");
         try {
           MTObserving.observingRoomDisconnected(event.reason);
-          String path = await LDevScreenRecording.stopRecordScreen;
-          _uploadFile(File(path));
+          if (_isRecording && _isAgentJoined) {
+            _isRecording = false;
+            _isAgentJoined = false;
+            String path = await LDevScreenRecording.stopRecordScreen;
+            if (path.isEmpty) return;
+            _uploadFile(File(path));
+          }
         } catch (e) {}
       })
       ..on<RoomConnectedEvent>((event) async {
@@ -272,22 +281,26 @@ class MTVideoCallPlugin {
         MTLog.logI(message: "TrackUnmutedEvent ${event.participant.toString()}");
         if (event.participant is RemoteParticipant) MTObserving.observingRemoteUnMutedTrack(event);
       })
-      ..on<ParticipantEvent>((event) {
+      ..on<ParticipantEvent>((event) async {
         MTLog.logI(message: "ParticipantEvent ${event.runtimeType}");
       })
       ..on<ParticipantDisconnectedEvent>((event) {
+        _isAgentJoined = false;
         MTLog.logI(message: "ParticipantDisconnectedEvent ${event.participant.toString()}");
         MTObserving.observingParticipantDisconnected(event);
       })
       ..on<LocalTrackPublishedEvent>((event) async {
         MTLog.logI(message: "LocalTrackPublishedEvent ${event.publication.toString()}");
         MTObserving.observingLocalTrackPublished(event);
+        if (Platform.isIOS && event.publication.source == TrackSource.microphone) {
+          _isRecording = await LDevScreenRecording.startRecordScreenAndAudio(currMTRoom!.roomId);
+        }
       })
       ..on<LocalTrackUnpublishedEvent>((event) {
         MTLog.logI(message: "LocalTrackUnpublishedEvent ${event.publication.toString()}");
         MTObserving.observingLocalTrackUnPublished(event);
       })
-      ..on<TrackSubscribedEvent>((event) {
+      ..on<TrackSubscribedEvent>((event) async {
         MTLog.logI(message: "TrackSubscribedEvent ${event.track.toString()}");
         MTObserving.observingTrackSubscribed(event);
       })

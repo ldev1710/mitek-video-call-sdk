@@ -29,13 +29,19 @@ class _MTNetwork {
     ProgressCallback? onReceiveProgress,
   }) async {
     try {
+      Options finalOption = Options(
+        headers: {
+          'x-api-key': _apiKey,
+        },
+      );
+      if (options != null) {
+        if (options.headers != null) {
+          finalOption.headers!.addAll(options.headers!);
+        }
+      }
       Response response = await _dio.get(
         path,
-        options: Options(
-          headers: {
-            'x-api-key': _apiKey,
-          },
-        ),
+        options: finalOption,
         queryParameters: queryParameters,
         cancelToken: cancelToken,
         onReceiveProgress: onReceiveProgress,
@@ -56,13 +62,20 @@ class _MTNetwork {
     ProgressCallback? onReceiveProgress,
   }) async {
     try {
+      Options finalOption = Options(
+        headers: {
+          'x-api-key': _apiKey,
+        },
+      );
+      if (options != null) {
+        if (options.headers != null) {
+          finalOption.headers!.addAll(options.headers!);
+        }
+      }
+
       Response response = await _dio.post(
         uri,
-        options: Options(
-          headers: {
-            'x-api-key': _apiKey,
-          },
-        ),
+        options: finalOption,
         data: data,
         queryParameters: queryParameters,
         cancelToken: cancelToken,
