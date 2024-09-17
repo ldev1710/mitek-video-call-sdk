@@ -316,10 +316,10 @@ packages:
     dependency: transitive
     description:
       name: ldev_screen_recording
-      sha256: d88724a5b96d75e9cf1880541c28f757fc8585a6df6eb5ef8f368695268dc3f8
+      sha256: bd5b2717dc4a42099e3b2e6627cc690a82037e2e986ca891bcd6a48fd91e2946
       url: "https://pub.dev"
     source: hosted
-    version: "0.0.4"
+    version: "0.1.0"
   leak_tracker:
     dependency: transitive
     description:
@@ -398,7 +398,7 @@ packages:
       path: ".."
       relative: true
     source: path
-    version: "0.1.2"
+    version: "0.1.4"
   nm:
     dependency: transitive
     description:
