@@ -90,6 +90,196 @@ We require a set of permissions that need to be declared in your `AppManifest.xm
   <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
   <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
   <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+  <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+  <uses-permission android:name="android.permission.WRITE_INTERNAL_STORAGE" />
   ...
 </manifest>
+```
+To your Android Manifest, under the `<application>` tag, add the following:
+```xml
+<service
+	android:name="com.foregroundservice.ForegroundService"
+	android:foregroundServiceType="mediaProjection">
+</service>
+```
+
+Import SDK:
+```dart
+import 'package:mitek_video_call_sdk/mitek_video_call_sdk.dart';
+```
+
+To authenticate SDK with MITEK ecosystem for enable using SDK:
+```dart
+final authSuccess = await MTVideoCallPlugin.instance.authenticate(apiKey: 'your_api_key');
+```
+
+Get hardware info device is using:
+```dart
+List<MediaDevice> audioInputs = MTVideoCallPlugin.instance.getDeviceAudioInput();
+List<MediaDevice> videoInputs = MTVideoCallPlugin.instance.getDeviceVideoInput();
+```
+
+Get queue support:
+```dart
+List<MTQueue> queues = await MTVideoCallPlugin.instance.getQueues();
+```
+
+# Start video call:
+## Using video call UI template of MITEK
+```dart
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MTCallingPage(
+                user: MTUser(
+                  name: "name_of_end_user", // Required
+                  email: "email_of_end_user",
+                  phone: "phone_of_end_user",
+                ),
+                queue: queueSelected,
+                device: videoInputSelected,
+              ),
+            ),
+          );
+```
+
+## Using method was provided from MITEK
+First of all, add listener from MTRoomEventListener or TrackMTTrackListener
+
+```dart
+class YourPageState extends StatefulWidget {
+  const YourPageState({super.key});
+
+  @override
+  State<YourPageState> createState() => _YourPageStateState();
+}
+
+class _YourPageStateState extends State<YourPageState> with MTRoomEventListener, MTTrackListener{
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    MTVideoCallPlugin.instance.addMTRoomEventListener(this);
+    MTVideoCallPlugin.instance.addMTTrackEventListener(this);
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    return const Placeholder(); //Writing for your UI
+  }
+
+  @override
+  void onConnectedRoom(Room room, String? metaData) {
+    // TODO: implement onConnectedRoom
+    super.onConnectedRoom(room, metaData);
+  }
+
+  @override
+  void onDisconnectedRoom(DisconnectReason? reason) async {
+    // TODO: implement onDisconnectedRoom
+    super.onDisconnectedRoom(reason);
+    // Remove listener
+    // You can also remove listener in dispose callback
+    MTVideoCallPlugin.instance.removeMTRoomEventListener(this);
+    MTVideoCallPlugin.instance.removeMTTrackEventListener(this);
+  }
+
+  @override
+  void onParticipantConnectedRoom(RemoteParticipant participant) async {
+    // TODO: implement onParticipantConnectedRoom
+    super.onParticipantConnectedRoom(participant);
+  }
+
+  @override
+  void onParticipantDisconnectedRoom(RemoteParticipant participant) async {
+    // TODO: implement onParticipantDisconnectedRoom
+    super.onParticipantDisconnectedRoom(participant);
+  }
+
+  @override
+  void onRemoteUnMutedTrack(
+      TrackPublication<Track> publication, Participant<TrackPublication<Track>> participant) {
+    // TODO: implement onRemoteUnMutedTrack
+    super.onRemoteUnMutedTrack(publication, participant);
+    print("onRemoteUnMutedTrack: Called");
+  }
+
+  @override
+  void onRemoteMutedTrack(TrackPublication<Track> publication, Participant participant) {
+    // TODO: implement onRemoteMutedTrack
+    super.onRemoteMutedTrack(publication, participant);
+    print("onRemoteMutedTrack: Called");
+  }
+
+  @override
+  void onLocalTrackPublished(
+      LocalParticipant localParticipant, LocalTrackPublication<LocalTrack> publication) {
+    // TODO: implement onLocalTrackPublished
+    super.onLocalTrackPublished(localParticipant, publication);
+  }
+
+  @override
+  void onLocalTrackUnPublished(
+      LocalParticipant localParticipant, LocalTrackPublication<LocalTrack> publication) {
+    // TODO: implement onLocalTrackUnPublished
+    super.onLocalTrackUnPublished(localParticipant, publication);
+  }
+
+  @override
+  void onReceiveData(List<int> data, RemoteParticipant? participant, String? topic) {
+    // TODO: implement onReceiveData
+    super.onReceiveData(data, participant, topic);
+  }
+
+  @override
+  void onTrackSubscribed(
+      RemoteTrackPublication<RemoteTrack> publication, RemoteParticipant participant, Track track) {
+    // TODO: implement onTrackSubscribed
+    super.onTrackSubscribed(publication, participant, track);
+  }
+
+  @override
+  void onTrackUnSubscribed(
+      RemoteTrackPublication<RemoteTrack> publication, RemoteParticipant participant, Track track) {
+    // TODO: implement onTrackUnSubscribed
+    super.onTrackUnSubscribed(publication, participant, track);
+  }
+}
+```
+
+Initialize and connect to room. Using function following:
+```dart
+final user = MTUser(
+  name: "sample_name",
+  email: "sample_email",
+  phone: "sample_phone",
+);
+final queue = queues.first; // example
+final room = await MTVideoCallPlugin.instance.startVideoCall(
+  user: user, // MTUser object
+  queue: queue,
+);
+await MTVideoCallPlugin.instance.setInputVideo(inputVideo);
+final isCnSuccess = await MTVideoCallPlugin.instance.connect2Room(queue: widget.queue, user: widget.user, room: room);
+```
+
+Dis/Enable recording:
+```dart
+MTVideoCallPlugin.instance.enableRecording(true) // or false
+```
+
+Switch, turn on/off camera and microphone when making video call:
+```dart
+MTVideoCallPlugin.instance.changeVideoTrack(mediaDevice)
+
+MTVideoCallPlugin.instance.enableVideo(true) // or false
+
+MTVideoCallPlugin.instance.enableMicrophone(true) // or false
+```
+
+Finally, disconnect video call:
+
+```dart
+bool isSuccess = await MTVideoCallPlugin.instance.disconnectVideoCall();
 ```

@@ -30,6 +30,7 @@ class MTVideoCallPlugin {
   bool _isVideoCalling = false;
   bool _isRecording = false;
   bool _isAgentJoined = false;
+  bool _isEnableRecord = false;
   final List<MTRoomEventListener> _roomListener = [];
   final List<MTTrackListener> _trackListener = [];
   String? _wssUrl;
@@ -79,6 +80,10 @@ class MTVideoCallPlugin {
   Future<List<MTQueue>> getQueues() async {
     _isValid();
     return _queues;
+  }
+
+  void enableRecording(bool enable) {
+    _isEnableRecord = enable;
   }
 
   void enableVideo(bool enable) {
@@ -183,20 +188,6 @@ class MTVideoCallPlugin {
     return true;
   }
 
-  Future<void> _changeLocalAudioTrack() async {
-    if (_audioTrack != null) {
-      await _audioTrack!.stop();
-      _audioTrack = null;
-    }
-
-    if (_selectedAudioDevice != null) {
-      _audioTrack = await LocalAudioTrack.create(AudioCaptureOptions(
-        deviceId: _selectedAudioDevice!.deviceId,
-      ));
-      await _audioTrack!.start();
-    }
-  }
-
   Future<void> changeVideoTrack(MediaDevice select) async {
     _selectedVideoDevice = select;
 
@@ -248,7 +239,7 @@ class MTVideoCallPlugin {
         _isAgentJoined = true;
         MTLog.logI(message: "ParticipantConnectedEvent ${event.participant.toString()}");
         MTObserving.observingParticipantConnected(event);
-        if (Platform.isAndroid) {
+        if (_isEnableRecord && Platform.isAndroid) {
           _isRecording = await LDevScreenRecording.startRecordScreenAndAudio(currMTRoom!.roomId);
         }
       })
@@ -256,7 +247,7 @@ class MTVideoCallPlugin {
         MTLog.logI(message: "RoomDisconnectedEvent ${event.reason.toString()}");
         try {
           MTObserving.observingRoomDisconnected(event.reason);
-          if (_isRecording && _isAgentJoined) {
+          if (_isEnableRecord && _isRecording && _isAgentJoined) {
             _isRecording = false;
             _isAgentJoined = false;
             String path = await LDevScreenRecording.stopRecordScreen;
@@ -292,7 +283,9 @@ class MTVideoCallPlugin {
       ..on<LocalTrackPublishedEvent>((event) async {
         MTLog.logI(message: "LocalTrackPublishedEvent ${event.publication.toString()}");
         MTObserving.observingLocalTrackPublished(event);
-        if (Platform.isIOS && event.publication.source == TrackSource.microphone) {
+        if (_isEnableRecord &&
+            Platform.isIOS &&
+            event.publication.source == TrackSource.microphone) {
           _isRecording = await LDevScreenRecording.startRecordScreenAndAudio(currMTRoom!.roomId);
         }
       })

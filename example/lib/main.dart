@@ -230,7 +230,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> authenticate() async {
-    final bool = await MTVideoCallPlugin.instance.authenticate(apiKey: 'your_api_key');
+    final authSuccess = await MTVideoCallPlugin.instance.authenticate(apiKey: 'your_api_key');
     queues = await MTVideoCallPlugin.instance.getQueues();
     audioInputs = MTVideoCallPlugin.instance.getDeviceAudioInput();
     videoInputs = MTVideoCallPlugin.instance.getDeviceVideoInput();

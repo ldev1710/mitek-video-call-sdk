@@ -12,6 +12,20 @@ import 'package:mitek_video_call_sdk/view/widget/grid_track.dart';
 import 'package:mitek_video_call_sdk/view/widget/local_video.dart';
 import 'package:pip_view/pip_view.dart';
 
+class YourPageState extends StatefulWidget {
+  const YourPageState({super.key});
+
+  @override
+  State<YourPageState> createState() => _YourPageStateState();
+}
+
+class _YourPageStateState extends State<YourPageState> {
+  @override
+  Widget build(BuildContext context) {
+    return const Placeholder();
+  }
+}
+
 class MTCallingPage extends StatefulWidget {
   MTCallingPage({
     super.key,
