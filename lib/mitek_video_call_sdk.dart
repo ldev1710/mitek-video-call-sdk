@@ -68,7 +68,8 @@ class MTVideoCallPlugin {
     }
     String decodeBase64 = utf8.decode(base64.decode(response.data['data']));
     Map<String, dynamic> mapData = json.decode(decodeBase64);
-    _queues = List<MTQueue>.from(mapData['list_queues'].map((e) => MTQueue.fromJson(e)));
+    _queues = List<MTQueue>.from(
+        mapData['list_queues'].map((e) => MTQueue.fromJson(e)));
     _wssUrl = mapData['wss_url'];
     Hardware.instance.onDeviceChange.stream.listen(_loadDevices);
     List<MediaDevice> devices = await Hardware.instance.enumerateDevices();
@@ -114,7 +115,8 @@ class MTVideoCallPlugin {
 
   /// Call this function before call 'startVideoCall' function
   /// It will create an session video call in MITEK system
-  Future<MTRoom> startVideoCall({required MTUser user, required MTQueue queue}) async {
+  Future<MTRoom> startVideoCall(
+      {required MTUser user, required MTQueue queue}) async {
     _isValid();
     Map<String, dynamic> body = {
       "queue_num": queue.queueNum,
@@ -151,6 +153,10 @@ class MTVideoCallPlugin {
     );
     _videoCallToken = response.data['data'];
     _room = Room();
+    _roomCoreListener = _room!.createListener();
+    _setUpListener();
+    await _room!.connect(_wssUrl!, _videoCallToken ?? "");
+    MTLog.logI(message: "Da connect xong");
     _videoTrack = await LocalVideoTrack.createCameraTrack(
       CameraCaptureOptions(
         deviceId: _selectedVideoDevice != null
@@ -158,10 +164,7 @@ class MTVideoCallPlugin {
             : _videoInputs.first.deviceId,
       ),
     );
-    _roomCoreListener = _room!.createListener();
-    _setUpListener();
     await _videoTrack!.start();
-    await _room!.connect(_wssUrl!, _videoCallToken ?? "");
     await _room!.localParticipant?.publishVideoTrack(_videoTrack!);
     await _room!.localParticipant?.setCameraEnabled(true);
     await _room!.localParticipant?.setMicrophoneEnabled(true);
@@ -237,10 +240,13 @@ class MTVideoCallPlugin {
     _roomCoreListener!
       ..on<ParticipantConnectedEvent>((event) async {
         _isAgentJoined = true;
-        MTLog.logI(message: "ParticipantConnectedEvent ${event.participant.toString()}");
+        MTLog.logI(
+            message:
+                "ParticipantConnectedEvent ${event.participant.toString()}");
         MTObserving.observingParticipantConnected(event);
         if (_isEnableRecord && Platform.isAndroid) {
-          _isRecording = await LDevScreenRecording.startRecordScreenAndAudio(currMTRoom!.roomId);
+          _isRecording = await LDevScreenRecording.startRecordScreenAndAudio(
+              currMTRoom!.roomId);
         }
       })
       ..on<RoomDisconnectedEvent>((event) async {
@@ -266,31 +272,41 @@ class MTVideoCallPlugin {
       })
       ..on<TrackMutedEvent>((event) {
         MTLog.logI(message: "TrackMutedEvent ${event.participant.toString()}");
-        if (event.participant is RemoteParticipant) MTObserving.observingRemoteMutedTrack(event);
+        if (event.participant is RemoteParticipant)
+          MTObserving.observingRemoteMutedTrack(event);
       })
       ..on<TrackUnmutedEvent>((event) {
-        MTLog.logI(message: "TrackUnmutedEvent ${event.participant.toString()}");
-        if (event.participant is RemoteParticipant) MTObserving.observingRemoteUnMutedTrack(event);
+        MTLog.logI(
+            message: "TrackUnmutedEvent ${event.participant.toString()}");
+        if (event.participant is RemoteParticipant)
+          MTObserving.observingRemoteUnMutedTrack(event);
       })
       ..on<ParticipantEvent>((event) async {
         MTLog.logI(message: "ParticipantEvent ${event.runtimeType}");
       })
       ..on<ParticipantDisconnectedEvent>((event) {
         _isAgentJoined = false;
-        MTLog.logI(message: "ParticipantDisconnectedEvent ${event.participant.toString()}");
+        MTLog.logI(
+            message:
+                "ParticipantDisconnectedEvent ${event.participant.toString()}");
         MTObserving.observingParticipantDisconnected(event);
       })
       ..on<LocalTrackPublishedEvent>((event) async {
-        MTLog.logI(message: "LocalTrackPublishedEvent ${event.publication.toString()}");
+        MTLog.logI(
+            message:
+                "LocalTrackPublishedEvent ${event.publication.toString()}");
         MTObserving.observingLocalTrackPublished(event);
         if (_isEnableRecord &&
             Platform.isIOS &&
             event.publication.source == TrackSource.microphone) {
-          _isRecording = await LDevScreenRecording.startRecordScreenAndAudio(currMTRoom!.roomId);
+          _isRecording = await LDevScreenRecording.startRecordScreenAndAudio(
+              currMTRoom!.roomId);
         }
       })
       ..on<LocalTrackUnpublishedEvent>((event) {
-        MTLog.logI(message: "LocalTrackUnpublishedEvent ${event.publication.toString()}");
+        MTLog.logI(
+            message:
+                "LocalTrackUnpublishedEvent ${event.publication.toString()}");
         MTObserving.observingLocalTrackUnPublished(event);
       })
       ..on<TrackSubscribedEvent>((event) async {
@@ -302,7 +318,8 @@ class MTVideoCallPlugin {
         MTObserving.observingTrackUnsubscribed(event);
       })
       ..on<ParticipantMetadataUpdatedEvent>((event) {
-        MTLog.logI(message: "ParticipantMetadataUpdatedEvent ${event.metadata}");
+        MTLog.logI(
+            message: "ParticipantMetadataUpdatedEvent ${event.metadata}");
       })
       ..on<RoomMetadataChangedEvent>((event) {
         MTLog.logI(message: "RoomMetadataChangedEvent ${event.metadata}");
@@ -311,6 +328,7 @@ class MTVideoCallPlugin {
         MTLog.logI(message: "DataReceivedEvent $event");
         MTObserving.observingDataReceive(event);
       });
+    MTLog.logI(message: "Listener da thiet lap");
   }
 
   void removeMTRoomEventListener(MTRoomEventListener listener) {
