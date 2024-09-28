@@ -118,18 +118,22 @@ class _MTCallingPageState extends State<MTCallingPage>
               topWidget: isLaunching //
                   ? const Center(child: CircularProgressIndicator())
                   : enableCamera
-                      ? IgnorePointer(
-                          ignoring: isFloating,
-                          child: LocalVideoWidget(
-                            videoTrack:
-                                MTVideoCallPlugin.instance.localVideoTrack!,
-                            backgroundWidget: widget,
-                            isFloating: isFloating,
-                            onPop: () {
-                              setState(() => isFloating = true);
-                            },
-                          ),
-                        )
+                      ? MTVideoCallPlugin.instance.localVideoTrack != null
+                          ? IgnorePointer(
+                              ignoring: isFloating,
+                              child: LocalVideoWidget(
+                                videoTrack:
+                                    MTVideoCallPlugin.instance.localVideoTrack!,
+                                backgroundWidget: widget,
+                                isFloating: isFloating,
+                                onPop: () {
+                                  setState(() => isFloating = true);
+                                },
+                              ),
+                            )
+                          : const Center(
+                              child: CircularProgressIndicator(),
+                            )
                       : Container(
                           color: Colors.grey.shade200,
                           alignment: Alignment.center,

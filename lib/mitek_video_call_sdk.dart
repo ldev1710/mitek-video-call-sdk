@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
-import 'package:intl/intl.dart';
 import 'package:ldev_screen_recording/ldev_screen_recording.dart';
 import 'package:livekit_client/livekit_client.dart';
 import 'package:mitek_video_call_sdk/listen/publisher/room_publisher.dart';
@@ -40,6 +39,7 @@ class MTVideoCallPlugin {
   MTRoom? currMTRoom;
   LocalVideoTrack? get localVideoTrack => _videoTrack;
   LocalAudioTrack? get localAudioTrack => _audioTrack;
+  bool _isFirstRecord = true;
   MediaDevice? _selectedVideoDevice;
   MediaDevice? _selectedAudioDevice;
   List<MediaDevice> _audioInputs = [];
@@ -172,6 +172,17 @@ class MTVideoCallPlugin {
     return true;
   }
 
+  void startRc() {
+    LDevScreenRecording.startRecordScreenAndAudio(
+        DateTime.now().millisecondsSinceEpoch.toString());
+  }
+
+  void stopRc() async {
+    String path = await LDevScreenRecording.stopRecordScreen;
+    if (path.isEmpty) return;
+    _uploadFile(File(path));
+  }
+
   /// Call this function to end and disconnect video call
   Future<bool> disconnectVideoCall() async {
     _isValid();
@@ -209,16 +220,16 @@ class MTVideoCallPlugin {
       String fileName = file.path.split('/').last;
       MTLog.logI(message: "File name: $fileName");
       DateTime now = DateTime.now();
+      String uploadURL = '/delegation_chief_role/notification/upload';
       FormData formData = FormData.fromMap({
-        'post_files': await MultipartFile.fromFile(
+        'body': await MultipartFile.fromFile(
           file.path,
           filename: fileName,
         ),
-        'created_time': DateFormat('yyyy-MM-dd').format(now),
       });
-
-      Response response = await _instanceNetwork.post(
-        MTNetworkConstant.uploadRecord,
+      Dio _dio = Dio(BaseOptions(baseUrl: "http://192.168.10.46:3000"));
+      Response response = await _dio.post(
+        uploadURL,
         data: formData,
         options: Options(
           headers: {
@@ -226,6 +237,23 @@ class MTVideoCallPlugin {
           },
         ),
       );
+      // FormData formData = FormData.fromMap({
+      //   'post_files': await MultipartFile.fromFile(
+      //     file.path,
+      //     filename: fileName,
+      //   ),
+      //   'created_time': DateFormat('yyyy-MM-dd').format(now),
+      // });
+      //
+      // Response response = await _instanceNetwork.post(
+      //   MTNetworkConstant.uploadRecord,
+      //   data: formData,
+      //   options: Options(
+      //     headers: {
+      //       'Content-Type': 'multipart/form-data',
+      //     },
+      //   ),
+      // );
       if (response.statusCode == 200) {
         MTLog.logI(message: "Upload file success");
       } else {
@@ -253,10 +281,10 @@ class MTVideoCallPlugin {
         MTLog.logI(message: "RoomDisconnectedEvent ${event.reason.toString()}");
         try {
           MTObserving.observingRoomDisconnected(event.reason);
+          String path = await LDevScreenRecording.stopRecordScreen;
           if (_isEnableRecord && _isRecording && _isAgentJoined) {
             _isRecording = false;
             _isAgentJoined = false;
-            String path = await LDevScreenRecording.stopRecordScreen;
             if (path.isEmpty) return;
             _uploadFile(File(path));
           }
@@ -301,6 +329,16 @@ class MTVideoCallPlugin {
             event.publication.source == TrackSource.microphone) {
           _isRecording = await LDevScreenRecording.startRecordScreenAndAudio(
               currMTRoom!.roomId);
+          if (_isFirstRecord) {
+            _isFirstRecord = false;
+            await Future.delayed(const Duration(seconds: 3));
+            MTLog.logI(message: "STOPPP");
+            await LDevScreenRecording.stopRecordScreen;
+            await Future.delayed(const Duration(seconds: 3));
+            MTLog.logI(message: "RESTARTTTT");
+            _isRecording = await LDevScreenRecording.startRecordScreenAndAudio(
+                currMTRoom!.roomId);
+          }
         }
       })
       ..on<LocalTrackUnpublishedEvent>((event) {

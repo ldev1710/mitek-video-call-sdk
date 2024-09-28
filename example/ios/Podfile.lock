@@ -12,6 +12,9 @@ PODS:
   - flutter_webrtc (0.11.3):
     - Flutter
     - WebRTC-SDK (= 125.6422.04)
+  - fluttertoast (0.0.2):
+    - Flutter
+    - Toast
   - ldev_screen_recording (0.0.1):
     - Flutter
   - livekit_client (2.2.4):
@@ -25,6 +28,7 @@ PODS:
   - shared_preferences_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
+  - Toast (4.1.1)
   - WebRTC-SDK (125.6422.04)
 
 DEPENDENCIES:
@@ -34,6 +38,7 @@ DEPENDENCIES:
   - Flutter (from `Flutter`)
   - flutter_foreground_task (from `.symlinks/plugins/flutter_foreground_task/ios`)
   - flutter_webrtc (from `.symlinks/plugins/flutter_webrtc/ios`)
+  - fluttertoast (from `.symlinks/plugins/fluttertoast/ios`)
   - ldev_screen_recording (from `.symlinks/plugins/ldev_screen_recording/ios`)
   - livekit_client (from `.symlinks/plugins/livekit_client/ios`)
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
@@ -42,6 +47,7 @@ DEPENDENCIES:
 
 SPEC REPOS:
   trunk:
+    - Toast
     - WebRTC-SDK
 
 EXTERNAL SOURCES:
@@ -57,6 +63,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/flutter_foreground_task/ios"
   flutter_webrtc:
     :path: ".symlinks/plugins/flutter_webrtc/ios"
+  fluttertoast:
+    :path: ".symlinks/plugins/fluttertoast/ios"
   ldev_screen_recording:
     :path: ".symlinks/plugins/ldev_screen_recording/ios"
   livekit_client:
@@ -75,11 +83,13 @@ SPEC CHECKSUMS:
   Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
   flutter_foreground_task: 21ef182ab0a29a3005cc72cd70e5f45cb7f7f817
   flutter_webrtc: 75b868e4f9e817c7a9a42ca4b6169063de4eec9f
+  fluttertoast: e9a18c7be5413da53898f660530c56f35edfba9c
   ldev_screen_recording: f510902e54b37a0ae016927148daa504ec9f1421
   livekit_client: d079c5f040d4bf2b80440ff0ae997725a183e4bc
   path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
   permission_handler_apple: 9878588469a2b0d0fc1e048d9f43605f92e6cec2
   shared_preferences_foundation: fcdcbc04712aee1108ac7fda236f363274528f78
+  Toast: 1f5ea13423a1e6674c4abdac5be53587ae481c4e
   WebRTC-SDK: c3d69a87e7185fad3568f6f3cff7c9ac5890acf3
 
 PODFILE CHECKSUM: 44a104ed4d907bc75bb463d18ee3c34b7752f779
