@@ -67,14 +67,16 @@ class _GridTrackState extends State<GridTrack> {
                 itemCount: videoTracks.length,
                 itemBuilder: (context, index) {
                   final track = videoTracks[index];
-                  final audio = index >= audioTracks.length ? null : audioTracks[index];
+                  final audio =
+                      index >= audioTracks.length ? null : audioTracks[index];
                   return Container(
                     color: Colors.black,
                     child: MTVideoTrack(
                       videoTrack: track,
                       audioTrack: audio,
                       mirrorMode: VideoViewMirrorMode.off,
-                      fit: rtc.RTCVideoViewObjectFit.RTCVideoViewObjectFitContain,
+                      fit: rtc
+                          .RTCVideoViewObjectFit.RTCVideoViewObjectFitContain,
                     ),
                   );
                 },
@@ -102,7 +104,8 @@ class _GridTrackState extends State<GridTrack> {
                     ],
                   )
                 : GridView.builder(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
                       mainAxisSpacing: 8,
                       crossAxisSpacing: 8,
@@ -110,12 +113,15 @@ class _GridTrackState extends State<GridTrack> {
                     itemCount: videoTracks.length,
                     itemBuilder: (context, index) {
                       final track = videoTracks[index];
-                      final audio = index >= audioTracks.length ? null : audioTracks[index];
+                      final audio = index >= audioTracks.length
+                          ? null
+                          : audioTracks[index];
                       return MTVideoTrack(
                         videoTrack: track,
                         audioTrack: audio,
                         mirrorMode: VideoViewMirrorMode.off,
-                        fit: rtc.RTCVideoViewObjectFit.RTCVideoViewObjectFitContain,
+                        fit: rtc
+                            .RTCVideoViewObjectFit.RTCVideoViewObjectFitContain,
                       );
                     },
                   );

@@ -56,11 +56,12 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    MTVideoCallPlugin.instance.enableRecording(true);
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text(
-          "MITEK Video Call SDK Demo",
+          "Video Call SDK Demo",
           style: TextStyle(
             color: Colors.white,
             fontSize: 18,
@@ -230,9 +231,8 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> authenticate() async {
-    final authSuccess =
-        await MTVideoCallPlugin.instance.authenticate(apiKey: 'your_api_key');
-    MTVideoCallPlugin.instance.enableRecording(true);
+    final authSuccess = await MTVideoCallPlugin.instance
+        .authenticate(apiKey: '60c05e8a35853f5f3ac2ab20c70eecce');
     queues = await MTVideoCallPlugin.instance.getQueues();
     audioInputs = MTVideoCallPlugin.instance.getDeviceAudioInput();
     videoInputs = MTVideoCallPlugin.instance.getDeviceVideoInput();

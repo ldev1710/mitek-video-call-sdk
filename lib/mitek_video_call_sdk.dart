@@ -1,9 +1,11 @@
 library mitek_video_call_sdk;
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:intl/intl.dart';
 import 'package:ldev_screen_recording/ldev_screen_recording.dart';
 import 'package:livekit_client/livekit_client.dart';
 import 'package:mitek_video_call_sdk/listen/publisher/room_publisher.dart';
@@ -48,7 +50,6 @@ class MTVideoCallPlugin {
   final _MTNetwork _instanceNetwork = _MTNetwork();
   List<MTQueue> _queues = [];
   Room? _room;
-
   List<MTRoomEventListener> get roomListener => _roomListener;
   List<MTTrackListener> get trackListener => _trackListener;
   Room? get currRoom => _room;
@@ -172,17 +173,6 @@ class MTVideoCallPlugin {
     return true;
   }
 
-  void startRc() {
-    LDevScreenRecording.startRecordScreenAndAudio(
-        DateTime.now().millisecondsSinceEpoch.toString());
-  }
-
-  void stopRc() async {
-    String path = await LDevScreenRecording.stopRecordScreen;
-    if (path.isEmpty) return;
-    _uploadFile(File(path));
-  }
-
   /// Call this function to end and disconnect video call
   Future<bool> disconnectVideoCall() async {
     _isValid();
@@ -218,18 +208,17 @@ class MTVideoCallPlugin {
   Future<void> _uploadFile(File file) async {
     try {
       String fileName = file.path.split('/').last;
-      MTLog.logI(message: "File name: $fileName");
       DateTime now = DateTime.now();
-      String uploadURL = '/delegation_chief_role/notification/upload';
       FormData formData = FormData.fromMap({
-        'body': await MultipartFile.fromFile(
+        'post_files': await MultipartFile.fromFile(
           file.path,
           filename: fileName,
         ),
+        'created_time': DateFormat('yyyy-MM-dd').format(now),
       });
-      Dio _dio = Dio(BaseOptions(baseUrl: "http://192.168.10.46:3000"));
-      Response response = await _dio.post(
-        uploadURL,
+
+      Response response = await _instanceNetwork.post(
+        MTNetworkConstant.uploadRecord,
         data: formData,
         options: Options(
           headers: {
@@ -237,23 +226,6 @@ class MTVideoCallPlugin {
           },
         ),
       );
-      // FormData formData = FormData.fromMap({
-      //   'post_files': await MultipartFile.fromFile(
-      //     file.path,
-      //     filename: fileName,
-      //   ),
-      //   'created_time': DateFormat('yyyy-MM-dd').format(now),
-      // });
-      //
-      // Response response = await _instanceNetwork.post(
-      //   MTNetworkConstant.uploadRecord,
-      //   data: formData,
-      //   options: Options(
-      //     headers: {
-      //       'Content-Type': 'multipart/form-data',
-      //     },
-      //   ),
-      // );
       if (response.statusCode == 200) {
         MTLog.logI(message: "Upload file success");
       } else {
@@ -329,16 +301,6 @@ class MTVideoCallPlugin {
             event.publication.source == TrackSource.microphone) {
           _isRecording = await LDevScreenRecording.startRecordScreenAndAudio(
               currMTRoom!.roomId);
-          if (_isFirstRecord) {
-            _isFirstRecord = false;
-            await Future.delayed(const Duration(seconds: 3));
-            MTLog.logI(message: "STOPPP");
-            await LDevScreenRecording.stopRecordScreen;
-            await Future.delayed(const Duration(seconds: 3));
-            MTLog.logI(message: "RESTARTTTT");
-            _isRecording = await LDevScreenRecording.startRecordScreenAndAudio(
-                currMTRoom!.roomId);
-          }
         }
       })
       ..on<LocalTrackUnpublishedEvent>((event) {
@@ -348,7 +310,8 @@ class MTVideoCallPlugin {
         MTObserving.observingLocalTrackUnPublished(event);
       })
       ..on<TrackSubscribedEvent>((event) async {
-        MTLog.logI(message: "TrackSubscribedEvent ${event.track.toString()}");
+        MTLog.logI(
+            message: "TrackSubscribedEvent ${event.track.source.toString()}");
         MTObserving.observingTrackSubscribed(event);
       })
       ..on<TrackUnsubscribedEvent>((event) {
